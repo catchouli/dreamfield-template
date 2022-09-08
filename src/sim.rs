@@ -10,6 +10,6 @@ use bevy_ecs::schedule::SystemSet;
 pub fn systems() -> SystemSet {
     SystemSet::new()
         .label("sim")
-        .with_system(player_movement)
+        .with_system(player_movement::player_update)
         .with_system(fire_orb_movement)
 }

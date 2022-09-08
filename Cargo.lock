@@ -400,7 +400,7 @@ dependencies = [
 [[package]]
 name = "dreamfield_macros"
 version = "0.1.0"
-source = "git+https://github.com/catchouli/dreamfield?tag=0.1.0#1b30a22d70b0aaf6d199810dfb53bc64555bac53"
+source = "git+https://github.com/catchouli/dreamfield?tag=0.2.0#d2e7f473f2c54733b0a3b6d80740e0f023fe156e"
 dependencies = [
  "gpp",
  "quote",
@@ -410,7 +410,7 @@ dependencies = [
 [[package]]
 name = "dreamfield_renderer"
 version = "0.1.0"
-source = "git+https://github.com/catchouli/dreamfield?tag=0.1.0#1b30a22d70b0aaf6d199810dfb53bc64555bac53"
+source = "git+https://github.com/catchouli/dreamfield?tag=0.2.0#d2e7f473f2c54733b0a3b6d80740e0f023fe156e"
 dependencies = [
  "bevy_ecs",
  "byteorder",
@@ -435,7 +435,7 @@ dependencies = [
 [[package]]
 name = "dreamfield_system"
 version = "0.1.0"
-source = "git+https://github.com/catchouli/dreamfield?tag=0.1.0#1b30a22d70b0aaf6d199810dfb53bc64555bac53"
+source = "git+https://github.com/catchouli/dreamfield?tag=0.2.0#d2e7f473f2c54733b0a3b6d80740e0f023fe156e"
 dependencies = [
  "bevy_ecs",
  "gl",
@@ -446,7 +446,7 @@ dependencies = [
 [[package]]
 name = "dreamfield_traits"
 version = "0.1.0"
-source = "git+https://github.com/catchouli/dreamfield?tag=0.1.0#1b30a22d70b0aaf6d199810dfb53bc64555bac53"
+source = "git+https://github.com/catchouli/dreamfield?tag=0.2.0#d2e7f473f2c54733b0a3b6d80740e0f023fe156e"
 
 [[package]]
 name = "either"

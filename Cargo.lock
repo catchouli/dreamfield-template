@@ -226,6 +226,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
+name = "bstr"
+version = "0.2.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
+dependencies = [
+ "lazy_static",
+ "memchr",
+ "regex-automata",
+ "serde",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -350,6 +362,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "csv"
+version = "1.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22813a6dc45b335f9bade10bf7271dc477e81113e89eb251a0bc2a8a81c536e1"
+dependencies = [
+ "bstr",
+ "csv-core",
+ "itoa 0.4.8",
+ "ryu",
+ "serde",
+]
+
+[[package]]
+name = "csv-core"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b2466559f260f48ad25fe6317b3c8dac77b5bdb5763ac7d9d6103530663bc90"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "cty"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -393,14 +427,16 @@ dependencies = [
  "dreamfield_traits",
  "env_logger",
  "gltf",
+ "include_dir",
  "log",
  "ncollide3d",
+ "speedy",
 ]
 
 [[package]]
 name = "dreamfield_macros"
 version = "0.1.0"
-source = "git+https://github.com/catchouli/dreamfield?tag=0.2.0#d2e7f473f2c54733b0a3b6d80740e0f023fe156e"
+source = "git+https://github.com/catchouli/dreamfield?tag=0.3.2#024331a6f37fe148772547c809494683f07afacd"
 dependencies = [
  "gpp",
  "quote",
@@ -410,11 +446,12 @@ dependencies = [
 [[package]]
 name = "dreamfield_renderer"
 version = "0.1.0"
-source = "git+https://github.com/catchouli/dreamfield?tag=0.2.0#d2e7f473f2c54733b0a3b6d80740e0f023fe156e"
+source = "git+https://github.com/catchouli/dreamfield?tag=0.3.2#024331a6f37fe148772547c809494683f07afacd"
 dependencies = [
  "bevy_ecs",
  "byteorder",
  "cgmath",
+ "csv",
  "dreamfield_macros",
  "dreamfield_system",
  "dreamfield_traits",
@@ -435,18 +472,25 @@ dependencies = [
 [[package]]
 name = "dreamfield_system"
 version = "0.1.0"
-source = "git+https://github.com/catchouli/dreamfield?tag=0.2.0#d2e7f473f2c54733b0a3b6d80740e0f023fe156e"
+source = "git+https://github.com/catchouli/dreamfield?tag=0.3.2#024331a6f37fe148772547c809494683f07afacd"
 dependencies = [
  "bevy_ecs",
+ "byteorder",
+ "cgmath",
  "gl",
  "glfw",
+ "gltf",
+ "include_dir",
  "log",
+ "serde",
+ "serde_json",
+ "speedy",
 ]
 
 [[package]]
 name = "dreamfield_traits"
 version = "0.1.0"
-source = "git+https://github.com/catchouli/dreamfield?tag=0.2.0#d2e7f473f2c54733b0a3b6d80740e0f023fe156e"
+source = "git+https://github.com/catchouli/dreamfield?tag=0.3.2#024331a6f37fe148772547c809494683f07afacd"
 
 [[package]]
 name = "either"
@@ -758,6 +802,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "include_dir"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "482a2e29200b7eed25d7fdbd14423326760b7f6658d21a4cf12d55a50713c69f"
+dependencies = [
+ "include_dir_macros",
+]
+
+[[package]]
+name = "include_dir_macros"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e074c19deab2501407c91ba1860fa3d6820bfde307db6d8cb851b55a10be89b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
 name = "indexmap"
 version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -784,6 +847,12 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
 ]
+
+[[package]]
+name = "itoa"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b71991ff56294aa922b450139ee08b3bfc70982c6b2c7562771375cf73542dd4"
 
 [[package]]
 name = "itoa"
@@ -1229,6 +1298,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "regex-automata"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c230d73fb8d8c1b9c0b3135c5142a8acee3a0558fb8db5cf1cb65f8d7862132"
+
+[[package]]
 name = "regex-syntax"
 version = "0.6.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1293,7 +1368,7 @@ version = "1.0.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e55a28e3aaef9d5ce0506d0a14dbba8054ddc7e499ef522dd8b26859ec9d4a44"
 dependencies = [
- "itoa",
+ "itoa 1.0.3",
  "ryu",
  "serde",
 ]
@@ -1334,6 +1409,26 @@ name = "smallvec"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fd0db749597d91ff862fd1d55ea87f7855a744a8425a64695b6fca237d1dad1"
+
+[[package]]
+name = "speedy"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f45b0970d87b76e449484d8a530a9c48ad04df2645d9af2148a74b82f368fa1"
+dependencies = [
+ "speedy-derive",
+]
+
+[[package]]
+name = "speedy-derive"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00d56cb212a4b09de6561bac41bc36dc810fd41faf24b0a8aa1374062546af0a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "spin"

@@ -1,31 +1,33 @@
 mod sim;
-mod level_collision;
 
-use cgmath::{vec3, vec2, Quaternion, Vector3, perspective, Deg, Matrix4, SquareMatrix};
 use bevy_ecs::prelude::*;
 use bevy_ecs::world::World;
 
-use dreamfield_system::{GameHost, WindowSettings};
-use dreamfield_system::resources::{InputState, SimTime};
-use dreamfield_renderer::renderer;
+use cgmath::{vec4, vec3, vec2, Vector2, Vector3, perspective, Deg, Matrix4, SquareMatrix, Matrix3};
+use include_dir::{include_dir, Dir};
+
+use dreamfield_system::GameHost;
+use dreamfield_system::components::{EntityName, Transform};
+use dreamfield_system::systems::entity_spawner::EntitySpawnRadius;
+use dreamfield_system::world::WorldChunkManager;
 use dreamfield_renderer::gl_backend::TextureParams;
-use dreamfield_renderer::components::{PlayerCamera, Visual, Animation, Position, ScreenEffect, RunTime};
-use dreamfield_renderer::resources::{ShaderManager, ModelManager, TextureManager};
+use dreamfield_renderer::components::{PlayerCamera, Visual, Animation, ScreenEffect, RunTime, DiagnosticsTextBox, TextBox};
+use dreamfield_renderer::resources::{ShaderManager, ModelManager, TextureManager, FontManager};
 use dreamfield_macros::*;
 
 use sim::*;
-
-/// The width of the window
-const WINDOW_WIDTH: i32 = 1024 * 2;
-
-/// The height of the window
-const WINDOW_HEIGHT: i32 = 768 * 2;
 
 /// The fixed update frequency
 const FIXED_UPDATE: i32 = 15;
 
 /// The fixed update target time
 const FIXED_UPDATE_TIME: f64 = 1.0 / (FIXED_UPDATE as f64);
+
+/// The player position entering the village
+const VILLAGE_ENTRANCE: (Vector3<f32>, Vector2<f32>) = (vec3(-125.1, 5.8, 123.8), vec2(0.063, -0.5));
+
+/// The world chunks
+const WORLD_CHUNKS: Dir<'_> = include_dir!("target/world_chunks");
 
 /// Create the shader manager
 pub fn create_shader_manager() -> ShaderManager {
@@ -35,7 +37,8 @@ pub fn create_shader_manager() -> ShaderManager {
         ("ps1_tess", preprocess_shader_vtf!(include_bytes!("../resources/shaders/ps1.glsl"))),
         ("composite_yiq", preprocess_shader_vf!(include_bytes!("../resources/shaders/composite_yiq.glsl"))),
         ("composite_resolve", preprocess_shader_vf!(include_bytes!("../resources/shaders/composite_resolve.glsl"))),
-        ("blit", preprocess_shader_vf!(include_bytes!("../resources/shaders/blit.glsl")))
+        ("blit", preprocess_shader_vf!(include_bytes!("../resources/shaders/blit.glsl"))),
+        ("text", preprocess_shader_vf!(include_bytes!("../resources/shaders/text.glsl"))),
     ])
 }
 
@@ -49,82 +52,49 @@ pub fn create_texture_manager() -> TextureManager {
 /// Create the model manager
 pub fn create_model_manager() -> ModelManager {
     ModelManager::new_with_models(vec![
-        ("demo_scene", include_bytes!("../resources/models/demo_scene.glb")),
         ("fire_orb", include_bytes!("../resources/models/fire_orb.glb")),
+        ("tree", include_bytes!("../resources/models/tree.glb")),
+        ("elf", include_bytes!("../resources/models/elf.glb")),
+        ("minecart", include_bytes!("../resources/models/minecart.glb")),
     ])
 }
 
-/// Initialise sim, returning the update bevy schedule
-fn init_sim(world: &mut World) -> Schedule {
-    // Sim resources
-    world.insert_resource(InputState::new());
-    world.insert_resource(SimTime::new(0.0, FIXED_UPDATE_TIME));
-    world.insert_resource({
-        let models = world.get_resource::<ModelManager>().expect("Failed to get model manager");
-        level_collision::LevelCollision::new(models.get("demo_scene").unwrap())
-    });
-
-    // Create update schedule
-    let mut update_schedule = Schedule::default();
-
-    update_schedule.add_stage("sim", SystemStage::parallel()
-        .with_system_set(sim::systems())
-    );
-
-    update_schedule
+/// Create the font manager
+fn create_font_manager() -> FontManager {
+    const MEDIEVAL_FONT_TEX: &'static [u8] = include_bytes!("../resources/fonts/0xDB_medievalish_chonker_8x8_1bpp_bmp_font_packed.png");
+    const MEDIEVAL_FONT_MAP: &'static [u8] = include_bytes!("../resources/fonts/0xDB_medievalish_chonker_8x8_1bpp_bmp_font_packed.csv");
+    FontManager::new(vec![
+        ("medieval", MEDIEVAL_FONT_TEX, MEDIEVAL_FONT_MAP)
+    ])
 }
 
-/// Initialise renderer, returning the render bevy schedule
-fn init_renderer(world: &mut World) -> Schedule {
-    // Renderer resources
-    world.insert_resource(WindowSettings::with_window_size((WINDOW_WIDTH as i32, WINDOW_HEIGHT as i32)));
-    world.insert_resource(create_shader_manager());
-    world.insert_resource(create_texture_manager());
-    world.insert_resource(create_model_manager());
+/// Create world entities
+fn create_entities(world: &mut World) {
+    // Diagnostics
+    let stats_bounds = vec4(10.0, 10.0, 310.0, 230.0);
+    world.spawn()
+        .insert(DiagnosticsTextBox)
+        .insert(TextBox::new("text", "medieval", "Vx8", "", None, Some(stats_bounds)));
 
-    // Create render schedule
-    let mut render_schedule = Schedule::default();
-
-    render_schedule.add_stage("render", SystemStage::single_threaded()
-        .with_system_set(renderer::systems())
-    );
-
-    render_schedule
-}
-
-/// Initialize bevy world
-fn init_entities(world: &mut World) {
     // Create sky
     world.spawn()
         .insert(ScreenEffect::new(RunTime::PreScene, "sky", Some("sky")));
 
-    // Create world
-    world.spawn()
-        .insert(Position::new(vec3(0.0, 0.0, 0.0), Quaternion::new(1.0, 0.0, 0.0, 0.0)))
-        .insert(Visual::new_with_anim("demo_scene", true, Animation::Loop("Idle".to_string())));
-
     // Create player
+    let (initial_pos, initial_rot) = VILLAGE_ENTRANCE;
     world.spawn()
+        .insert(EntityName::new("Player"))
         // Entrance to village
+        .insert(Transform::new(initial_pos, Matrix3::identity()))
+        .insert(PlayerMovement::new_pos_look(PlayerMovementMode::Normal, initial_rot))
+        .insert(PlayerMovement::collider())
         .insert(create_player_camera())
-        // Entrance to cathedral
-        //.insert(PlayerCamera::new(vec3(-99.988, 6.567, 75.533), -0.0367, 0.8334))
-        // In corridor, going out
-        //.insert(PlayerCamera::new(vec3(-45.99, 5.75, 17.37), 0.163, 1.7323))
-        // Looking at torch
-        //.insert(PlayerCamera::new(vec3(-33.04357, 4.42999, 15.564), 0.563, 2.499))
-        // Looking at corridor
-        //.insert(PlayerCamera::new(vec3(5.2, 0.8, 12.8), 0.03, 2.0))
-        // Default dungeon pos
-        //.insert(PlayerCamera::new(vec3(0.0, 1.0, 10.0), -0.17, 0.0))
-        // Going outside
-        //.insert(PlayerCamera::new(vec3(-53.925, 5.8, 19.56), 0.097, 1.57))
-        .insert(PlayerMovement::new(vec3(-125.1, 5.8, 123.8), vec2(0.063, 0.099)));
+        .insert(EntitySpawnRadius::new(10.0));
 
     // Create fire orb
     world.spawn()
         .insert(FireOrb::default())
-        .insert(Position::new(vec3(-9.0, 0.0, 9.0), Quaternion::new(1.0, 0.0, 0.0, 0.0)))
+        .insert(Transform::new(vec3(-9.0, 0.0, 9.0), Matrix3::identity()))
         .insert(Visual::new_with_anim("fire_orb", false, Animation::Loop("Orb".to_string())));
 }
 
@@ -165,19 +135,37 @@ fn main() {
     log::info!("Welcome to Dreamfield!");
 
     // Create game host
-    let mut host = GameHost::new(WINDOW_WIDTH, WINDOW_HEIGHT, FIXED_UPDATE_TIME);
+    let mut host = GameHost::new(None, FIXED_UPDATE_TIME);
 
     // Create bevy world
     let mut world = World::default();
 
-    // Initialise renderer
-    let render_schedule = init_renderer(&mut world);
+    // Initialise system and renderer
+    dreamfield_system::init(&mut world);
+    dreamfield_renderer::init(&mut world,
+        create_model_manager(),
+        create_shader_manager(),
+        create_texture_manager(),
+        create_font_manager(),
+        WorldChunkManager::new(&WORLD_CHUNKS));
 
-    // Initialise sim
-    let update_schedule = init_sim(&mut world);
+    // Create update schedule
+    let mut update_schedule = Schedule::default();
+
+    update_schedule.add_stage("sim", SystemStage::parallel()
+        .with_system_set(dreamfield_system::systems())
+        .with_system_set(sim::systems())
+    );
+
+    // Create render schedule
+    let mut render_schedule = Schedule::default();
+
+    render_schedule.add_stage("render", SystemStage::single_threaded()
+        .with_system_set(dreamfield_renderer::systems())
+    );
 
     // Initialise entities
-    init_entities(&mut world);
+    create_entities(&mut world);
 
     // Run game
     host.run(world, update_schedule, render_schedule);
